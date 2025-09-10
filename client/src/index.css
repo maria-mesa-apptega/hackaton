@@ -1,0 +1,120 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import "tailwindcss";
+
+:root {
+  --font-sans: "Inter", sans-serif;
+}
+
+/* Markdown scoped styles for content rendered inside <main> */
+main :where(.markdown, .markdown *) {
+  font-family: var(--font-sans);
+}
+
+main .markdown h1,
+main .markdown h2,
+main .markdown h3,
+main .markdown h4,
+main .markdown h5,
+main .markdown h6 {
+  color: theme("colors.slate.900");
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+main .markdown h1 {
+  font-size: 1.75rem;
+}
+main .markdown h2 {
+  font-size: 1.5rem;
+}
+main .markdown h3 {
+  font-size: 1.25rem;
+}
+main .markdown h4 {
+  font-size: 1.125rem;
+}
+
+main .markdown p {
+  margin-bottom: 0.75rem;
+}
+
+main .markdown a {
+  color: theme("colors.blue.600"); /* blue-600 */
+  text-decoration: underline;
+}
+
+main .markdown ul,
+main .markdown ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+main .markdown ul {
+  list-style-type: disc;
+}
+
+main .markdown ol {
+  list-style-type: decimal;
+}
+
+main .markdown li {
+  margin-bottom: 0.25rem;
+}
+
+main .markdown pre {
+  background: theme("colors.slate.100");
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow: auto;
+  margin-bottom: 0.75rem;
+}
+
+main .markdown code {
+  background: theme("colors.slate.100");
+  color: theme("colors.slate.900");
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+    "Courier New", monospace;
+}
+
+main .markdown blockquote {
+  border-left: 4px solid theme("colors.slate.200");
+  padding-left: 1rem;
+  color: theme("colors.slate.600");
+  margin: 0.5rem 0;
+}
+
+main .markdown hr {
+  border: none;
+  border-top: 1px solid theme("colors.slate.200");
+  margin: 1rem 0;
+}
+
+main .markdown img {
+  max-width: 100%;
+  display: block;
+  margin: 0.5rem 0;
+}
+
+main .markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+}
+
+main .markdown th,
+main .markdown td {
+  border: 1px solid theme("colors.slate.200");
+  padding: 0.5rem;
+}
+
+main .markdown th {
+  background: theme("colors.slate.50");
+}
+
+main .markdown img {
+  max-width: 480px;
+}
