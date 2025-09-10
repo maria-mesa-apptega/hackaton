@@ -38,11 +38,11 @@ export async function queryDatabase(sql: string, params: any[] = []): Promise<an
     console.error('Database query error:', error);
     console.error('SQL:', sql);
     console.error('Params:', params);
-    throw new Error(`Database query failed: ${error.message}`);
+    throw new Error(`Database query failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
-export async function searchComplianceData(question: string): Promise<any[]> {
+export async function searchComplianceData(question: string, organizationId?: string | null): Promise<any[]> {
   try {
     // For general questions like "what frameworks are available", return all frameworks
     const generalQuestions = ['what frameworks', 'available frameworks', 'list frameworks', 'show frameworks'];
@@ -50,18 +50,67 @@ export async function searchComplianceData(question: string): Promise<any[]> {
     
     if (isGeneralQuestion) {
       console.log('General framework question detected, returning all frameworks');
+      console.log('Organization ID filter:', organizationId || 'None');
+      
+      // Build WHERE clause based on organizationId
+      let whereClause = 'is_visible = 1 AND deprecated = 0';
+      let params: any[] = [];
+      
+      if (organizationId) {
+        whereClause += ' AND organization_id = ?';
+        params.push(organizationId);
+      }
+      
       const sql = `
         SELECT 
           id,
           name as title,
           description,
           slug,
+          organization_id,
           'framework' as type
         FROM framework 
-        WHERE is_visible = 1 AND deprecated = 0
-        LIMIT 10
+        WHERE ${whereClause}
+        ORDER BY name ASC
+        LIMIT 20
       `;
-      return await queryDatabase(sql);
+      console.log('Executing SQL:', sql);
+      console.log('Parameters:', params);
+      const result = await queryDatabase(sql, params);
+      console.log('Query result:', result);
+      
+      // If no results with the filtered query, try without filters
+      if (result.length === 0) {
+        console.log('No results with filters, trying without filters...');
+        let fallbackWhereClause = '1=1';
+        let fallbackParams: any[] = [];
+        
+        if (organizationId) {
+          fallbackWhereClause = 'organization_id = ?';
+          fallbackParams.push(organizationId);
+        }
+        
+        const fallbackSql = `
+          SELECT 
+            id,
+            name as title,
+            description,
+            slug,
+            organization_id,
+            'framework' as type
+          FROM framework 
+          WHERE ${fallbackWhereClause}
+          ORDER BY name ASC
+          LIMIT 20
+        `;
+        console.log('Executing fallback SQL:', fallbackSql);
+        console.log('Fallback parameters:', fallbackParams);
+        const fallbackResult = await queryDatabase(fallbackSql, fallbackParams);
+        console.log('Fallback query result:', fallbackResult);
+        return fallbackResult;
+      }
+      
+      return result;
     }
     
     const searchTerm = `%${question.toLowerCase()}%`;

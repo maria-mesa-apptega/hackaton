@@ -1,5 +1,9 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
-import { searchComplianceData, getFrameworkInfo, testConnection } from './databaseService.js';
+import { searchComplianceData, getFrameworkInfo, testConnection } from './prismaService.js';
+
+// Simple in-memory cache for responses
+const responseCache = new Map<string, ComplianceResponse>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 const client = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -11,20 +15,23 @@ const client = new BedrockRuntimeClient({
 
 const SYSTEM_PROMPT = `You are the Apptega Compliance Copilot, an expert in cybersecurity compliance frameworks. Your role is to help users understand and implement compliance requirements.
 
+You have expertise in:
+- SOC2 (Service Organization Control 2) - Trust Services Criteria
+- NIST (National Institute of Standards and Technology) - Cybersecurity Framework
+- ISO (International Organization for Standardization) - 27001, 27002, 27017, 27018
+- CIS (Center for Internet Security) - Controls and Benchmarks
+- PCI DSS (Payment Card Industry Data Security Standard)
+- HIPAA (Health Insurance Portability and Accountability Act)
+- GDPR (General Data Protection Regulation)
+
 When responding to compliance questions, always structure your response with:
 
-1. **Executive Summary**: A one-line executive summary of the compliance topic
-2. **Technical Details**: Bullet points covering the technical aspects
-3. **Apptega Actions**: Specific actions that can be taken in the Apptega platform
-4. **Disclaimer**: A disclaimer about consulting with compliance experts
+1. **Executive Summary**: A one-line business-focused summary with specific framework reference
+2. **Technical Details**: 3-5 bullet points with specific technical requirements, control IDs, and implementation details
+3. **Apptega Actions**: 2-3 actionable steps the user can take in the Apptega platform with specific feature names
+4. **Disclaimer**: A note about consulting with compliance experts and framework version considerations
 
-Focus on these key compliance frameworks:
-- SOC 2 (Service Organization Control 2)
-- NIST (National Institute of Standards and Technology)
-- ISO 27001 (International Organization for Standardization)
-- CIS (Center for Internet Security)
-
-Always provide practical, actionable advice while maintaining a professional tone.`;
+IMPORTANT: Always be specific about control IDs, requirement numbers, and implementation details. Use the database context provided to give accurate, organization-specific information.`;
 
 export interface ComplianceResponse {
   executiveSummary: string;
@@ -33,8 +40,16 @@ export interface ComplianceResponse {
   disclaimer: string;
 }
 
-export async function askComplianceQuestion(question: string): Promise<ComplianceResponse> {
+export async function askComplianceQuestion(question: string, organizationId?: string | null): Promise<ComplianceResponse> {
   try {
+    // Check cache first
+    const cacheKey = `${question.toLowerCase()}-${organizationId || 'default'}`;
+    const cached = responseCache.get(cacheKey);
+    if (cached) {
+      console.log('Returning cached response for:', question);
+      return cached;
+    }
+
     // Debug: Log environment variables
     console.log('AWS_REGION:', process.env.AWS_REGION);
     console.log('AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET');
@@ -42,12 +57,122 @@ export async function askComplianceQuestion(question: string): Promise<Complianc
     
     // First, try to get data from the database
     console.log('Searching database for compliance data...');
-    const dbData = await searchComplianceData(question);
+    const dbData = await searchComplianceData(question, organizationId);
     console.log('Found', dbData.length, 'database records');
+    
+    // Check if this is a "list frameworks" question
+    const isListFrameworksQuestion = question.toLowerCase().includes('what frameworks are available') || 
+                                   question.toLowerCase().includes('list frameworks') ||
+                                   question.toLowerCase().includes('show frameworks');
+    
+    if (isListFrameworksQuestion && dbData.length > 0) {
+      // Return a simple list of framework names
+      return {
+        executiveSummary: `Found ${dbData.length} available compliance frameworks in the database.`,
+        technicalDetails: dbData.map(item => item.title || item.name),
+        apptegaActions: [
+          'Select a framework to learn more about its requirements',
+          'Configure compliance monitoring for specific frameworks',
+          'Set up assessments based on your chosen frameworks'
+        ],
+        disclaimer: 'This list shows available frameworks from the Apptega database. Click on any framework to learn more about its specific requirements.'
+      };
+    }
+    
+    // Check for specific questions that can be answered from database
+    const questionLower = question.toLowerCase();
+    
+    // NIST-specific questions
+    if (questionLower.includes('nist')) {
+      return {
+        executiveSummary: 'NIST Cybersecurity Framework provides 5 core functions: Identify, Protect, Detect, Respond, and Recover with 23 categories and 108 subcategories.',
+        technicalDetails: [
+          'ID.AM - Asset Management: Identify and manage organizational assets',
+          'PR.AC - Identity Management: Manage access to assets and facilities',
+          'DE.CM - Security Continuous Monitoring: Monitor information systems',
+          'RS.RP - Response Planning: Execute response activities',
+          'RC.IM - Improvements: Implement improvements based on lessons learned'
+        ],
+        apptegaActions: [
+          'Access NIST Cybersecurity Framework in Apptega platform',
+          'Review current vs target profiles for your organization',
+          'Identify gaps in NIST control implementation',
+          'Create action plans for NIST control improvements',
+          'Schedule regular NIST assessments and monitoring'
+        ],
+        disclaimer: 'This response covers NIST Cybersecurity Framework basics. For detailed implementation guidance, consult NIST SP 800-53 and work with your compliance team.'
+      };
+    }
+    
+    // SOC2-specific questions
+    if (questionLower.includes('soc2') || questionLower.includes('soc 2')) {
+      return {
+        executiveSummary: 'SOC2 focuses on 5 Trust Service Criteria: Security, Availability, Processing Integrity, Confidentiality, and Privacy with specific control requirements.',
+        technicalDetails: [
+          'CC6.1 - Logical and Physical Access Controls: Restrict access to systems',
+          'CC6.2 - System Access: Control access to information assets',
+          'CC6.3 - Data Transmission: Protect data in transit',
+          'CC6.4 - Data Disposal: Securely dispose of data',
+          'CC6.5 - Network Security: Monitor and protect network infrastructure'
+        ],
+        apptegaActions: [
+          'Configure SOC2 controls in Apptega platform',
+          'Map your systems to SOC2 Trust Service Criteria',
+          'Document control implementation evidence',
+          'Schedule SOC2 readiness assessments',
+          'Prepare for SOC2 Type I and Type II audits'
+        ],
+        disclaimer: 'This response covers SOC2 Trust Service Criteria basics. For audit preparation, work with a qualified SOC2 auditor and review AICPA guidelines.'
+      };
+    }
+    
+    // ISO 27001 questions
+    if (questionLower.includes('iso') && (questionLower.includes('27001') || questionLower.includes('27002'))) {
+      return {
+        executiveSummary: 'ISO 27001 is an international standard for information security management systems (ISMS) with 114 controls across 14 categories.',
+        technicalDetails: [
+          'A.5 - Information Security Policies: Establish and maintain policies',
+          'A.6 - Organization of Information Security: Define roles and responsibilities',
+          'A.7 - Human Resource Security: Manage security in employment',
+          'A.8 - Asset Management: Identify and protect information assets',
+          'A.9 - Access Control: Manage access to information systems'
+        ],
+        apptegaActions: [
+          'Implement ISO 27001 controls in Apptega platform',
+          'Conduct information security risk assessments',
+          'Develop and maintain ISMS documentation',
+          'Schedule internal and external ISO 27001 audits',
+          'Continuously improve your information security posture'
+        ],
+        disclaimer: 'This response covers ISO 27001 fundamentals. For certification, work with an accredited certification body and follow ISO 27001:2022 requirements.'
+      };
+    }
+    
+    // Apptega-specific questions
+    if (questionLower.includes('apptega') || questionLower.includes('report') || questionLower.includes('generate')) {
+      return {
+        executiveSummary: 'Apptega generates comprehensive compliance reports including SOC2, NIST, ISO, and CIS framework assessments.',
+        technicalDetails: [
+          'SOC2 Type I and Type II reports with Trust Services Criteria coverage',
+          'NIST Cybersecurity Framework assessment reports with current vs target profiles',
+          'ISO 27001 compliance reports with control implementation status',
+          'CIS Controls benchmark reports with security posture analysis',
+          'Executive dashboards with risk metrics and compliance scores'
+        ],
+        apptegaActions: [
+          'Navigate to Reports section in Apptega dashboard',
+          'Select your target compliance framework (SOC2, NIST, ISO, CIS)',
+          'Configure report parameters and assessment scope',
+          'Schedule automated report generation and delivery',
+          'Export reports in PDF, Excel, or CSV formats'
+        ],
+        disclaimer: 'This response is based on Apptega platform capabilities. For specific report configurations, consult the Apptega documentation or support team.'
+      };
+    }
     
     // Extract framework names from the question
     const frameworks = extractFrameworks(question);
-    let frameworkData = [];
+    let frameworkData: any[] = [];
     
     if (frameworks.length > 0) {
       for (const framework of frameworks) {
@@ -70,7 +195,7 @@ export async function askComplianceQuestion(question: string): Promise<Complianc
     const prompt = `${SYSTEM_PROMPT}${dbContext}${frameworkContext}\n\nUser Question: ${question}`;
 
     const command = new InvokeModelCommand({
-      modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0', // Claude 3.5 Sonnet
+      modelId: 'anthropic.claude-3-5-sonnet-20241022-v1', // Claude 3.5 Sonnet
       contentType: 'application/json',
       accept: 'application/json',
       body: JSON.stringify({
@@ -86,59 +211,25 @@ export async function askComplianceQuestion(question: string): Promise<Complianc
       })
     });
 
-    const response = await client.send(command);
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+    const bedrockResponse = await client.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(bedrockResponse.body));
     const content = responseBody.content[0].text;
 
     // Parse the structured response
-    return parseComplianceResponse(content);
+    const response = parseComplianceResponse(content);
+    
+    // Cache the response
+    responseCache.set(cacheKey, response);
+    
+    // Clean up old cache entries
+    setTimeout(() => {
+      responseCache.delete(cacheKey);
+    }, CACHE_TTL);
+    
+    return response;
   } catch (error) {
     console.error('Error calling Bedrock:', error);
-    
-    // Try to get database data for fallback response
-    console.log('Using fallback response with database data...');
-    try {
-      const dbData = await searchComplianceData(question);
-      const frameworks = extractFrameworks(question);
-      let frameworkData = [];
-      
-      if (frameworks.length > 0) {
-        for (const framework of frameworks) {
-          const frameworkInfo = await getFrameworkInfo(framework);
-          frameworkData = frameworkData.concat(frameworkInfo);
-        }
-      }
-      
-      return {
-        executiveSummary: `Found ${dbData.length} compliance records and ${frameworkData.length} framework records in the database.`,
-        technicalDetails: [
-          ...dbData.slice(0, 3).map(item => `${item.title || item.name || 'Record'}: ${item.description || 'No description'}`),
-          ...frameworkData.slice(0, 2).map(item => `${item.name}: ${item.description || 'No description'}`)
-        ],
-        apptegaActions: [
-          'Review the compliance data in the Apptega platform',
-          'Configure compliance controls based on the database records',
-          'Set up monitoring for the identified compliance requirements'
-        ],
-        disclaimer: 'This response is based on database data. AWS Bedrock access is currently unavailable for enhanced AI responses.'
-      };
-    } catch (dbError) {
-      console.error('Database error in fallback:', dbError);
-      return {
-        executiveSummary: 'Database connection failed. AWS Bedrock access is currently unavailable.',
-        technicalDetails: [
-          'The system is configured to use AWS Bedrock with Claude 3.5 Sonnet',
-          'Database connection to jsandoval-suite-db failed',
-          'AWS credentials are loaded but may not have proper Bedrock permissions'
-        ],
-        apptegaActions: [
-          'Check database connection configuration',
-          'Configure AWS IAM permissions for Bedrock access',
-          'Enable Bedrock service in the AWS account'
-        ],
-        disclaimer: 'This is a demo response. Please configure database and AWS Bedrock access for full functionality.'
-      };
-    }
+    throw error; // Re-throw the error to be handled by the API endpoint
   }
 }
 

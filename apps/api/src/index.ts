@@ -2,14 +2,17 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
 import { askComplianceQuestion } from './services/bedrockService.js';
-import { testConnection, queryDatabase } from './services/databaseService.js';
+import { testConnection } from './services/prismaService.js';
+
+const prisma = new PrismaClient();
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = parseInt(process.env.PORT || '8000');
 
 // Middleware
 app.use(helmet());
@@ -46,50 +49,48 @@ app.get('/api', (req, res) => {
 // Database explorer endpoint
 app.get('/db/explore', async (req, res) => {
   try {
-    // Get all tables
-    const tables = await queryDatabase(`
-      SELECT TABLE_NAME, TABLE_COMMENT 
-      FROM INFORMATION_SCHEMA.TABLES 
-      WHERE TABLE_SCHEMA = ?
-      ORDER BY TABLE_NAME
-    `, [process.env.DB_NAME || 'apptega']);
+    // Get framework data using Prisma
+    const frameworks = await prisma.framework.findMany({
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        slug: true,
+        organization_id: true,
+        is_visible: true,
+        deprecated: true
+      }
+    });
     
-    // Get framework table structure
-    let frameworkColumns = [];
-    let frameworkData = [];
-    try {
-      frameworkColumns = await queryDatabase(`
-        SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'framework'
-        ORDER BY ORDINAL_POSITION
-      `, [process.env.DB_NAME || 'apptega']);
-      
-      frameworkData = await queryDatabase(`SELECT * FROM framework LIMIT 5`);
-    } catch (error) {
-      console.log('Framework table not found or empty:', error.message);
-    }
+    // Get framework count
+    const frameworkCount = await prisma.framework.count({
+      where: {
+        is_visible: true,
+        deprecated: false
+      }
+    });
     
     res.json({
       success: true,
-      database: process.env.DB_NAME || 'apptega',
-      tables: tables.length,
-      tableNames: tables.map(t => t.TABLE_NAME),
-      frameworkColumns: frameworkColumns,
-      frameworkData: frameworkData
+      database: 'apptega (via Prisma)',
+      totalFrameworks: frameworkCount,
+      sampleFrameworks: frameworks,
+      message: 'Using Prisma ORM for database access'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
 // Compliance Q&A endpoint
 app.post('/ask', async (req, res) => {
+  const startTime = Date.now();
   try {
-    const { question } = req.body;
+    const { question, organizationId } = req.body;
     
     if (!question) {
       return res.status(400).json({ 
@@ -99,20 +100,62 @@ app.post('/ask', async (req, res) => {
     }
 
     console.log('Received compliance question:', question);
+    console.log('Organization ID:', organizationId || 'Not provided');
     
-    const response = await askComplianceQuestion(question);
+    const response = await askComplianceQuestion(question, organizationId);
+    const responseTime = Date.now() - startTime;
     
-    res.json({
+    // Log analytics
+    console.log(`Response generated in ${responseTime}ms`);
+    console.log(`Response sections: Executive=${!!response.executiveSummary}, Technical=${response.technicalDetails.length}, Actions=${response.apptegaActions.length}`);
+    
+    return res.json({
       success: true,
       data: response,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      analytics: {
+        responseTime: `${responseTime}ms`,
+        sectionsGenerated: {
+          executive: !!response.executiveSummary,
+          technical: response.technicalDetails.length,
+          actions: response.apptegaActions.length
+        }
+      }
     });
   } catch (error) {
+    const responseTime = Date.now() - startTime;
     console.error('Error processing compliance question:', error);
-    res.status(500).json({
+    console.log(`Error occurred after ${responseTime}ms`);
+    
+    // Determine error type and provide specific messages
+    let errorMessage = 'Unknown error occurred';
+    let errorType = 'UNKNOWN_ERROR';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('UnrecognizedClientException')) {
+        errorMessage = 'AWS Bedrock authentication failed. Please check your AWS credentials and permissions.';
+        errorType = 'AWS_AUTH_ERROR';
+      } else if (error.message.includes('ECONNREFUSED')) {
+        errorMessage = 'Database connection failed. Please check if the database is running.';
+        errorType = 'DATABASE_CONNECTION_ERROR';
+      } else if (error.message.includes('CredentialsProviderError')) {
+        errorMessage = 'AWS credentials not found. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.';
+        errorType = 'AWS_CREDENTIALS_ERROR';
+      } else {
+        errorMessage = error.message;
+        errorType = 'GENERAL_ERROR';
+      }
+    }
+    
+    return res.status(500).json({
       success: false,
-      error: 'Failed to process compliance question',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: errorMessage,
+      errorType: errorType,
+      message: 'Please check the server logs for more details',
+      analytics: {
+        responseTime: `${responseTime}ms`,
+        error: true
+      }
     });
   }
 });

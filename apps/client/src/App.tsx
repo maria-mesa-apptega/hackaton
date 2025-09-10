@@ -10,6 +10,7 @@ interface ComplianceResponse {
 
 function App() {
   const [question, setQuestion] = useState('')
+  const [organizationId, setOrganizationId] = useState('')
   const [response, setResponse] = useState<ComplianceResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -28,18 +29,32 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ 
+          question,
+          organizationId: organizationId || null
+        }),
       })
 
       const data = await res.json()
 
       if (data.success) {
         setResponse(data.data)
+        // Log analytics if available
+        if (data.analytics) {
+          console.log('Response analytics:', data.analytics)
+        }
       } else {
-        setError(data.message || 'Failed to get response')
+        // Display specific error information
+        const errorDetails = data.errorType ? `${data.errorType}: ${data.error}` : data.error;
+        setError(errorDetails);
+        console.error('API Error:', data);
       }
     } catch (err) {
-      setError('Network error. Make sure the API is running.')
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Network error. Make sure the API is running on port 8000.')
+      } else {
+        setError('An unexpected error occurred. Please try again.')
+      }
       console.error('Error:', err)
     } finally {
       setLoading(false)
@@ -66,6 +81,23 @@ function App() {
         <div className="compliance-card p-8 mb-8">
           <div className="space-y-6">
             <div className="space-y-4">
+              <div className="flex space-x-4">
+                <input
+                  type="text"
+                  value={organizationId}
+                  onChange={(e) => setOrganizationId(e.target.value)}
+                  placeholder="Organization ID (optional)"
+                  className="flex-1 p-3 border-2 border-secondary-200 rounded-xl text-secondary-900 placeholder-secondary-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none transition-all duration-200"
+                  disabled={loading}
+                />
+                <button
+                  onClick={() => setOrganizationId('')}
+                  className="px-4 py-3 bg-secondary-100 hover:bg-secondary-200 text-secondary-700 rounded-xl transition-colors duration-200"
+                  disabled={loading}
+                >
+                  Clear
+                </button>
+              </div>
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
@@ -75,6 +107,30 @@ function App() {
                 rows={3}
                 disabled={loading}
               />
+              
+              {/* Quick Question Buttons */}
+              <div className="space-y-2">
+                <p className="text-sm text-secondary-600 font-medium">Quick Questions:</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'What frameworks are available?',
+                    'NIST cybersecurity framework controls',
+                    'SOC2 requirements for data encryption',
+                    'ISO 27001 implementation steps',
+                    'What reports does Apptega generate?',
+                    'CIS controls for cloud security'
+                  ].map((quickQuestion) => (
+                    <button
+                      key={quickQuestion}
+                      onClick={() => setQuestion(quickQuestion)}
+                      className="px-3 py-1 text-xs bg-primary-100 hover:bg-primary-200 text-primary-700 rounded-full transition-colors duration-200"
+                      disabled={loading}
+                    >
+                      {quickQuestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Button 
                 onClick={askQuestion} 
                 disabled={loading || !question.trim()}
@@ -86,14 +142,20 @@ function App() {
               </Button>
             </div>
 
-            {error && (
-              <div className="bg-error-50 border-2 border-error-200 text-error-700 p-4 rounded-2xl">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xl">❌</span>
-                  <span className="font-medium">{error}</span>
-                </div>
-              </div>
-            )}
+                    {error && (
+                      <div className="bg-error-50 border-2 border-error-200 text-error-700 p-4 rounded-2xl">
+                        <div className="flex items-start space-x-2">
+                          <span className="text-xl">❌</span>
+                          <div className="flex-1">
+                            <div className="font-medium mb-2">Error Details:</div>
+                            <div className="text-sm">{error}</div>
+                            <div className="text-xs text-error-600 mt-2">
+                              💡 Check the browser console for more technical details
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
             {response && (
               <div className="space-y-6 text-left">
@@ -110,14 +172,13 @@ function App() {
                     <span>🔧</span>
                     <span>Technical Details</span>
                   </h3>
-                  <ul className="space-y-2 text-primary-700">
+                  <ol className="space-y-2 text-primary-700 list-decimal list-inside">
                     {response.technicalDetails.map((detail, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <span className="text-primary-500 mt-1">•</span>
-                        <span className="leading-relaxed">{detail}</span>
+                      <li key={index} className="leading-relaxed">
+                        {detail}
                       </li>
                     ))}
-                  </ul>
+                  </ol>
                 </div>
 
                 <div className="bg-gradient-to-r from-accent-50 to-accent-100 border border-accent-200 rounded-2xl p-6">
