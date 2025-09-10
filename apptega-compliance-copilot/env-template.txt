@@ -1,0 +1,183 @@
+# Environment Variables Template for Apptega Compliance Copilot
+# Copy these variables to your .env file and fill in the appropriate values
+
+# Application Configuration
+NODE_ENV=development
+LOG_LEVEL=info
+SERVICE_NAME=apptega-compliance-copilot
+SERVICE_VERSION=1.0.0
+
+# CORS Configuration
+CORS_ORIGIN=*
+
+# AWS Configuration
+AWS_REGION=us-east-1
+AWS_PROFILE=default
+
+# AWS Bedrock Configuration
+BEDROCK_REGION=us-east-1
+BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+BEDROCK_FALLBACK_MODEL_ID=anthropic.claude-3-haiku-20240307-v1:0
+BEDROCK_MAX_TOKENS=4096
+BEDROCK_TEMPERATURE=0.1
+
+# AWS Credentials (Required for Bedrock access)
+# Option 1: Direct credentials (for development/testing)
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+# AWS_SESSION_TOKEN=your_session_token_if_using_temporary_credentials
+
+# Option 2: AWS Profile (alternative to direct credentials)
+# AWS_PROFILE=your_aws_profile_name
+
+# Option 3: IAM Role (for production deployment on AWS)
+# When deployed on AWS (Lambda, EC2, ECS), IAM roles provide automatic credential management
+# No explicit credentials needed in this case
+
+# MySQL Database Configuration (for Apptega integration)
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DATABASE=apptega_compliance
+MYSQL_USERNAME=apptega_user
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_CONNECTION_LIMIT=10
+MYSQL_SSL_MODE=REQUIRED
+
+# DynamoDB Configuration
+DYNAMODB_TABLE_NAME=apptega-conversations
+DYNAMODB_REGION=us-east-1
+DYNAMODB_ENDPOINT=https://dynamodb.us-east-1.amazonaws.com
+
+# Apptega API Configuration
+APPTEGA_API_BASE_URL=https://api.apptega.com/v1
+APPTEGA_API_KEY=your_apptega_api_key
+APPTEGA_API_TIMEOUT=30000
+APPTEGA_API_RETRY_ATTEMPTS=3
+
+# Authentication & Security
+JWT_SECRET=your_jwt_secret_key_here_minimum_32_characters
+JWT_EXPIRY=24h
+API_RATE_LIMIT_WINDOW=900000
+API_RATE_LIMIT_MAX_REQUESTS=100
+ENABLE_API_KEY_AUTH=true
+MASTER_API_KEY=your_master_api_key
+
+# Logging Configuration
+ENABLE_REQUEST_LOGGING=true
+ENABLE_RESPONSE_LOGGING=false
+LOG_SENSITIVE_DATA=false
+
+# Performance Configuration
+LAMBDA_TIMEOUT=30
+LAMBDA_MEMORY=512
+CONNECTION_POOL_SIZE=5
+CACHE_TTL=3600
+
+# Monitoring & Observability
+ENABLE_METRICS=true
+ENABLE_TRACING=true
+METRICS_NAMESPACE=ApptegaComplianceCopilot
+
+# Feature Flags
+ENABLE_MOCK_DATA=true
+ENABLE_DEBUG_MODE=false
+ENABLE_EXPERIMENTAL_FEATURES=false
+
+# Error Handling
+ENABLE_ERROR_STACK_TRACES=false
+ERROR_REPORTING_ENABLED=true
+
+# Development/Testing Configuration
+ENABLE_LOCAL_DEVELOPMENT=true
+MOCK_EXTERNAL_SERVICES=false
+ENABLE_SWAGGER_UI=true
+
+# Compliance Data Configuration
+DEFAULT_ORGANIZATION_ID=1
+DEFAULT_COMPLIANCE_FRAMEWORK=NIST_CSF_V1_1
+ENABLE_MULTI_TENANT=true
+
+# Cache Configuration
+ENABLE_CACHING=true
+CACHE_PROVIDER=memory
+REDIS_URL=redis://localhost:6379
+CACHE_DEFAULT_TTL=1800
+
+# Email Configuration (for notifications)
+EMAIL_PROVIDER=ses
+EMAIL_FROM_ADDRESS=noreply@yourcompany.com
+SES_REGION=us-east-1
+
+# Webhook Configuration
+ENABLE_WEBHOOKS=false
+WEBHOOK_SECRET=your_webhook_secret
+
+# File Upload Configuration
+MAX_FILE_SIZE=10485760
+ALLOWED_FILE_TYPES=pdf,doc,docx,txt,csv
+S3_BUCKET_NAME=apptega-compliance-documents
+S3_REGION=us-east-1
+
+# Rate Limiting
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS=false
+
+# Health Check Configuration
+HEALTH_CHECK_TIMEOUT=5000
+HEALTH_CHECK_INTERVAL=30000
+
+# Backup Configuration
+ENABLE_AUTOMATED_BACKUPS=true
+BACKUP_RETENTION_DAYS=30
+BACKUP_S3_BUCKET=apptega-compliance-backups
+
+# Security Headers
+ENABLE_SECURITY_HEADERS=true
+HSTS_MAX_AGE=31536000
+CONTENT_SECURITY_POLICY=default-src 'self'
+
+# API Documentation
+ENABLE_API_DOCS=true
+API_DOCS_PATH=/api-docs
+
+# Compliance Specific Configuration
+COMPLIANCE_FRAMEWORKS=NIST_CSF_V1_1,ISO_27001,SOC2_TYPE_II,HIPAA,PCI_DSS,GDPR,CCPA,CIS_CONTROLS
+DEFAULT_LANGUAGE=en
+ENABLE_MULTILINGUAL=false
+
+# Integration Configuration
+ENABLE_SLACK_INTEGRATION=false
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/your/slack/webhook
+ENABLE_TEAMS_INTEGRATION=false
+TEAMS_WEBHOOK_URL=https://your-org.webhook.office.com/webhookb2/your-teams-webhook
+
+# Advanced AI Configuration
+AI_CONTEXT_WINDOW_SIZE=8000
+AI_RESPONSE_MAX_LENGTH=4000
+AI_TEMPERATURE_MIN=0.0
+AI_TEMPERATURE_MAX=1.0
+AI_ENABLE_STREAMING=false
+AI_RETRY_ATTEMPTS=3
+AI_TIMEOUT_MS=60000
+
+# Data Retention Configuration
+DATA_RETENTION_DAYS=365
+CONVERSATION_RETENTION_DAYS=90
+LOG_RETENTION_DAYS=30
+
+# Audit Configuration
+ENABLE_AUDIT_LOGGING=true
+AUDIT_LOG_LEVEL=info
+AUDIT_RETENTION_DAYS=2555
+
+# Performance Monitoring
+ENABLE_PERFORMANCE_MONITORING=true
+SLOW_QUERY_THRESHOLD=1000
+MEMORY_USAGE_THRESHOLD=80
+
+# Development Tools
+ENABLE_HOT_RELOAD=true
+ENABLE_SOURCE_MAPS=true
+ENABLE_PROFILING=false
