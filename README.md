@@ -37,13 +37,17 @@ hackaton/
 │       ├── tsconfig.json         # TypeScript config
 │       └── Dockerfile            # API Docker image
 ├── packages/
-│   └── ui/                       # Shared UI components
-│       ├── src/
-│       │   ├── Button.tsx        # Reusable button component
-│       │   ├── Card.tsx          # Reusable card component
-│       │   └── index.ts          # Component exports
-│       ├── package.json          # UI package dependencies
-│       └── tsconfig.json         # TypeScript config
+│   ├── @hackaton/ui/             # Shared UI components
+│   │   ├── src/
+│   │   │   ├── Button.tsx        # Reusable button component
+│   │   │   ├── Card.tsx          # Reusable card component
+│   │   │   └── index.ts          # Component exports
+│   │   ├── package.json          # UI package dependencies
+│   │   └── tsconfig.json         # TypeScript config
+│   └── @hackaton/tailwind-config/ # Shared Tailwind configuration
+│       ├── index.js              # Tailwind config
+│       ├── index.d.ts            # TypeScript definitions
+│       └── package.json          # Config package dependencies
 ├── docker-compose.yml            # Development environment
 ├── docker-compose.prod.yml       # Production environment
 ├── package.json                  # Root package.json with Turbo.js
@@ -60,11 +64,13 @@ hackaton/
 
 **Required Software:**
 - **nvm (Node Version Manager)** - For managing Node.js versions
-- **Node.js 18+** - JavaScript runtime (managed via nvm)
+- **Node.js 18.x** - JavaScript runtime (managed via nvm) - **REQUIRED**
 - **pnpm 8.0+** - Package manager (faster, more efficient than npm)
 - **Docker & Docker Compose** - Containerization
 - **AWS Account** - For Bedrock access
 - **Git** - Version control
+
+**⚠️ Important:** This project requires Node.js 18.x specifically. Node.js 19+ or 20+ may cause installation issues with Tailwind CSS and other dependencies.
 
 **Why nvm?**
 - **Version Management** - Easy switching between Node.js versions
@@ -104,9 +110,12 @@ hackaton/
    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
    # For Windows: Download from https://github.com/coreybutler/nvm-windows
    
-   # Install and use Node.js 18
+   # Install and use Node.js 18 (REQUIRED - other versions may cause issues)
    nvm install 18
    nvm use 18
+   
+   # Verify Node.js version
+   node --version  # Should show v18.x.x
    
    # Install pnpm globally
    npm install -g pnpm@8.0.0
@@ -217,7 +226,8 @@ docker-compose -f docker-compose.prod.yml up --build
 **pnpm Workspace Commands:**
 - `pnpm -F client dev` - Run dev script in client app only
 - `pnpm -F api dev` - Run dev script in API only
-- `pnpm -F ui build` - Build UI package only
+- `pnpm -F @hackaton/ui build` - Build UI package only
+- `pnpm -F @hackaton/tailwind-config build` - Build Tailwind config package
 - `pnpm add <package> -F client` - Add dependency to client app
 - `pnpm add <package> -w` - Add dependency to workspace root
 - `pnpm list -r` - List all dependencies across workspace
@@ -236,10 +246,14 @@ docker-compose -f docker-compose.prod.yml up --build
 - `pnpm run start` - Start production server
 - `pnpm run lint` - Lint API code
 
-### UI Package (`packages/ui`)
+### UI Package (`@hackaton/ui`)
 - `pnpm run build` - Build shared components
 - `pnpm run dev` - Watch mode for development
 - `pnpm run lint` - Lint UI components
+
+### Tailwind Config Package (`@hackaton/tailwind-config`)
+- `pnpm run build` - Build TypeScript definitions
+- `pnpm run dev` - Watch mode for development
 
 ## 🗄️ Future Database Setup
 
@@ -314,7 +328,7 @@ docker system prune -a
 
 **4. Node.js/nvm Issues:**
 ```bash
-# Check Node.js version
+# Check Node.js version (MUST be 18.x)
 node --version
 
 # Switch to correct Node.js version
@@ -325,6 +339,9 @@ nvm install 18
 
 # Set Node.js 18 as default
 nvm alias default 18
+
+# If using wrong Node.js version, you'll see ERR_INVALID_THIS errors
+# This is a known issue with Node.js 19+ and Tailwind CSS
 ```
 
 **5. pnpm Issues:**
@@ -339,7 +356,26 @@ rm -rf packages/*/node_modules
 pnpm install
 ```
 
-**6. Environment Variables:**
+**6. ERR_INVALID_THIS Error:**
+```bash
+# This error occurs with Node.js 19+ and Tailwind CSS
+# Solution: Use Node.js 18.x
+
+# Check current Node.js version
+node --version
+
+# If not 18.x, switch to Node.js 18
+nvm use 18
+
+# If Node.js 18 not installed
+nvm install 18
+nvm use 18
+
+# Then retry installation
+pnpm install
+```
+
+**7. Environment Variables:**
 - Ensure `.env` file exists in root directory
 - Check AWS credentials are correctly set
 - Verify `VITE_API_URL` matches your API port
