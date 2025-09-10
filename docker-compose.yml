@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/client:/app
+      - /app/node_modules
+      - ./package.json:/app/../../package.json
+      - ./turbo.json:/app/../../turbo.json
+    environment:
+      - NODE_ENV=development
+    networks:
+      - hackaton-network
+
+  # Placeholder for future PostgreSQL database
+  # postgres:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_DB: hackaton
+  #     POSTGRES_USER: hackaton
+  #     POSTGRES_PASSWORD: hackaton
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - hackaton-network
+
+  # Placeholder for future Lambda API
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/api/Dockerfile
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - DATABASE_URL=postgresql://hackaton:hackaton@postgres:5432/hackaton
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - hackaton-network
+
+networks:
+  hackaton-network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:
