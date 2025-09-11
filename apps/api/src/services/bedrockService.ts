@@ -195,7 +195,7 @@ export async function askComplianceQuestion(question: string, organizationId?: s
     const prompt = `${SYSTEM_PROMPT}${dbContext}${frameworkContext}\n\nUser Question: ${question}`;
 
     const command = new InvokeModelCommand({
-      modelId: 'anthropic.claude-3-5-sonnet-20241022-v1', // Claude 3.5 Sonnet
+      modelId: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', // Claude 3.5 Sonnet
       contentType: 'application/json',
       accept: 'application/json',
       body: JSON.stringify({
@@ -211,7 +211,70 @@ export async function askComplianceQuestion(question: string, organizationId?: s
       })
     });
 
-    const bedrockResponse = await client.send(command);
+    console.log('Attempting to invoke Bedrock with model:', 'us.anthropic.claude-3-5-sonnet-20241022-v2:0');
+    
+    // List of models to try in order of preference
+    const modelIds = [
+      'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+      'us.anthropic.claude-3-5-sonnet-20241022-v1:0',
+      'us.anthropic.claude-3-5-sonnet-20241022:0',
+      'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+      'us.anthropic.claude-3-haiku-20240307-v1:0',
+      'us.anthropic.claude-3-sonnet-20240229-v1:0'
+    ];
+    
+    let bedrockResponse;
+    let lastError;
+    
+    for (const modelId of modelIds) {
+      try {
+        console.log(`Trying model: ${modelId}`);
+        const command = new InvokeModelCommand({
+          modelId: modelId,
+          contentType: 'application/json',
+          accept: 'application/json',
+          body: JSON.stringify({
+            anthropic_version: 'bedrock-2023-05-31',
+            max_tokens: 2000,
+            temperature: 0.1,
+            messages: [
+              {
+                role: 'user',
+                content: prompt
+              }
+            ]
+          })
+        });
+        
+        bedrockResponse = await client.send(command);
+        console.log(`Successfully invoked model: ${modelId}`);
+        break; // Success, exit the loop
+      } catch (error: any) {
+        console.log(`Failed to invoke model ${modelId}:`, error.message);
+        lastError = error;
+        continue; // Try next model
+      }
+    }
+    
+    if (!bedrockResponse) {
+      console.log('All Bedrock models failed, falling back to database-only response');
+      // Fallback to database-only response
+      return {
+        executiveSummary: `Found ${dbData.length} compliance records in the database for your query.`,
+        technicalDetails: dbData.length > 0 ? 
+          dbData.slice(0, 5).map(item => 
+            `- ${item.title || item.name || 'Record'}: ${item.description || 'No description available'}`
+          ) : 
+          ['No specific compliance data found in the database for this query.'],
+        apptegaActions: [
+          'Review the compliance data in your Apptega dashboard',
+          'Configure additional compliance frameworks if needed',
+          'Contact support for specific compliance guidance'
+        ],
+        disclaimer: 'This response is based on available database records. For comprehensive AI-powered compliance guidance, please ensure AWS Bedrock model access is properly configured.'
+      };
+    }
+    
     const responseBody = JSON.parse(new TextDecoder().decode(bedrockResponse.body));
     const content = responseBody.content[0].text;
 
