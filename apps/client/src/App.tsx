@@ -81,7 +81,7 @@ function App() {
         <div className="compliance-card p-8 mb-8">
           <div className="space-y-6">
             <div className="space-y-4">
-              <div className="flex space-x-4">
+              {/* <div className="flex space-x-4">
                 <input
                   type="text"
                   value={organizationId}
@@ -97,7 +97,7 @@ function App() {
                 >
                   Clear
                 </button>
-              </div>
+              </div> */}
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
@@ -199,7 +199,7 @@ function App() {
                 <div className="bg-gradient-to-r from-warning-50 to-warning-100 border border-warning-300 rounded-2xl p-6">
                   <h3 className="text-xl font-bold text-warning-800 mb-3 flex items-center space-x-2">
                     <span>⚠️</span>
-                    <span>Disclaimer</span>
+                    <span>Disclaimer/Notes</span>
                   </h3>
                   <p className="text-warning-700 leading-relaxed">{response.disclaimer}</p>
                 </div>
@@ -210,7 +210,7 @@ function App() {
 
         <div className="text-center">
           <p className="text-white/80 text-sm">
-            Powered by AWS Bedrock with Claude 3.5 Sonnet • Built for Apptega Hackathon
+          Powered by Apptega©
           </p>
         </div>
       </header>
