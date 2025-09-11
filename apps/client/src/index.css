@@ -8,10 +8,6 @@
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
-  
-  body {
-    @apply bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 min-h-screen;
-  }
 }
 
 @layer components {
@@ -22,8 +18,125 @@
   .glass-effect {
     @apply bg-white/10 backdrop-blur-lg border border-white/20;
   }
-  
-  .compliance-card {
-    @apply bg-white/95 backdrop-blur-sm border border-white/30 shadow-strong rounded-3xl;
-  }
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  color: theme("colors.slate.900");
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.markdown h1 {
+  font-size: 1.75rem;
+}
+.markdown h2 {
+  font-size: 1.5rem;
+}
+.markdown h3 {
+  font-size: 1.25rem;
+}
+.markdown h4 {
+  font-size: 1.125rem;
+}
+
+.markdown p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown a {
+  color: theme("colors.blue.600"); /* blue-600 */
+  text-decoration: underline;
+}
+
+.markdown ul,
+.markdown ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown ul {
+  list-style-type: disc;
+}
+
+.markdown ol {
+  list-style-type: decimal;
+}
+
+.markdown li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown pre {
+  background: theme("colors.slate.100");
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow: auto;
+  margin-bottom: 0.75rem;
+}
+
+.markdown code {
+  background: theme("colors.slate.100");
+  color: theme("colors.slate.900");
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+    "Courier New", monospace;
+}
+
+.markdown blockquote {
+  border-left: 4px solid theme("colors.slate.200");
+  padding-left: 1rem;
+  color: theme("colors.slate.600");
+  margin: 0.5rem 0;
+}
+
+.markdown hr {
+  border: none;
+  border-top: 1px solid theme("colors.slate.200");
+  margin: 1rem 0;
+}
+
+.markdown img {
+  max-width: 480px;
+  display: block;
+  margin: 0.5rem 0;
+}
+
+/* Make the markdown area fill available space and keep input wrapper visible */
+.markdown {
+  /* allow the container to grow and scroll if content is long */
+  display: block;
+}
+
+#input-wrapper {
+  /* keep the input area from shrinking and ensure it sits below markdown */
+  flex: 0 0 auto;
+}
+
+/* Ensure the parent container doesn't exceed the viewport height */
+.p-8.mb-8.bg-white.rounded-2xl.h-full.max-h-\[80vh\] {
+  max-height: 80vh;
+}
+
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid theme("colors.slate.200");
+  padding: 0.5rem;
+}
+
+.markdown th {
+  background: theme("colors.slate.50");
 }
